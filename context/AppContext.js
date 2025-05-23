@@ -99,6 +99,15 @@ export function ApiProvider({ children }) {
     });
   };
 
+  const loginUser = async ({username, password}) => {
+    return fetchApi('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+  }
+  
+
+
 
   return (
     <ApiContext.Provider value={{
@@ -113,6 +122,7 @@ export function ApiProvider({ children }) {
       getUserByEmail,
       getUserByUsername,
       getUserByPhone,
+      loginUser,
       // Bank methods
       getBankByUserId,
       deleteBankByUserId,

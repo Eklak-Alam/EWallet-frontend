@@ -11,7 +11,10 @@ import { useApi } from '@/context/AppContext';
 export default function DashboardPage() {
   const router = useRouter();
   const { getUserById, getBankByUserId, getWalletByUserId, loading: apiLoading, error: apiError } = useApi();
-  
+
+  // Track logged in status
+  const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('userId'));
+
   const [user, setUser] = useState(null);
   const [bankAccount, setBankAccount] = useState(null);
   const [wallet, setWallet] = useState(null);
@@ -19,34 +22,37 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
+    if (!loggedIn) {
+      // If not logged in, redirect immediately to login page
+      router.push('/login');
+      return;
+    }
+
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        
-        // Get user ID from localStorage (assuming you stored it after login/signup)
+
         const userId = localStorage.getItem('userId');
-        
         if (!userId) {
           toast.error('No user session found. Please login.');
+          setLoggedIn(false); // Update login state
           router.push('/login');
           return;
         }
 
-        // Fetch user data
         const userData = await getUserById(userId);
         setUser(userData);
 
-        // Fetch bank and wallet data in parallel
         const [bankData, walletData] = await Promise.all([
           getBankByUserId(userId),
-          getWalletByUserId(userId)
+          getWalletByUserId(userId),
         ]);
-
         setBankAccount(bankData);
         setWallet(walletData);
       } catch (err) {
         console.error('Dashboard Load Error:', err);
         toast.error(apiError || 'Failed to load dashboard data');
+        setLoggedIn(false); // Important: user session invalid
         router.push('/login');
       } finally {
         setLoading(false);
@@ -54,13 +60,21 @@ export default function DashboardPage() {
     };
 
     fetchUserData();
-  }, [router, getUserById, getBankByUserId, getWalletByUserId, apiError]);
+  }, [loggedIn, router, getUserById, getBankByUserId, getWalletByUserId, apiError]);
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
+    localStorage.removeItem('token');
+    setLoggedIn(false); // Immediately update state to trigger redirect and stop loading
     router.push('/login');
   };
 
+
+  // Optional: quick redirect if no userId in localStorage (for safety)
+  if (!loggedIn) {
+    // Could return null or loading spinner to avoid flickering dashboard
+    return null;
+  }
   if (loading) {
     return (
       <div className="w-screen h-screen bg-white flex items-center justify-center fixed top-0 left-0 z-50">
