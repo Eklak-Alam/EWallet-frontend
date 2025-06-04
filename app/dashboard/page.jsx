@@ -13,13 +13,24 @@ export default function DashboardPage() {
   const { getUserById, getBankByUserId, getWalletByUserId, loading: apiLoading, error: apiError } = useApi();
 
   // Track logged in status
-  const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('userId'));
+  const [loggedIn, setLoggedIn] = useState(false);
 
   const [user, setUser] = useState(null);
   const [bankAccount, setBankAccount] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  useEffect(() => {
+  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  if (!userId) {
+    setLoggedIn(false);
+    router.push('/login');
+  } else {
+    setLoggedIn(true);
+  }
+}, []);
+
 
   useEffect(() => {
     if (!loggedIn) {
