@@ -1,6 +1,7 @@
 import { ApiProvider } from "@/context/AppContext";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { ToastContainer } from "react-toastify";
 
 export const metadata = {
   title: "Create Next App",
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
         <ApiProvider>
           <Navbar />
           {children}
+          <ToastContainer />
         </ApiProvider>
       </body>
     </html>

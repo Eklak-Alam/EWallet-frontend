@@ -23,12 +23,10 @@ export default function CreateAccount() {
 
   const [formData, setFormData] = useState({
     name: '',
-    userName: '',
     email: '',
     countryCode: '+1',
     phoneNumber: '',
     password: '',
-    confirmPassword: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -47,7 +45,6 @@ export default function CreateAccount() {
     const newErrors = {};
 
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.userName.trim()) newErrors.userName = 'Username is required';
 
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
     else if (!/^\d{7,15}$/.test(formData.phoneNumber)) newErrors.phoneNumber = 'Invalid phone number';
@@ -56,10 +53,7 @@ export default function CreateAccount() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email address';
 
     if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-
-    if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
-    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    else if (formData.password.length < 5) newErrors.password = 'Password must be at least 5 characters';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,12 +68,9 @@ export default function CreateAccount() {
     try {
       const userData = {
         name: formData.name,
-        userName: formData.userName,
         email: formData.email,
-        countryCode: formData.countryCode,
-        phoneNumber: formData.phoneNumber,
+        phoneNumber: `${formData.countryCode}-${formData.phoneNumber}`,
         password: formData.password,
-        confirmPassword: formData.confirmPassword,
       };
 
       const createdUser = await createUser(userData);
@@ -95,7 +86,7 @@ export default function CreateAccount() {
     }
   };
 
-  const fullPhoneNumber = formData.countryCode + formData.phoneNumber;
+  const fullPhoneNumber = formData.countryCode + '-' + formData.phoneNumber;
 
   return (
     <motion.div
@@ -127,25 +118,6 @@ export default function CreateAccount() {
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
 
-          {/* Username */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiUser className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                name="userName"
-                value={formData.userName}
-                onChange={handleChange}
-                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.userName ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="johndoe123"
-              />
-            </div>
-            {errors.userName && <p className="mt-1 text-sm text-red-600">{errors.userName}</p>}
-          </div>
-
           {/* Phone Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -174,7 +146,7 @@ export default function CreateAccount() {
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                  placeholder="1234567890"
+                  placeholder="9876543213"
                 />
               </div>
             </div>
@@ -214,31 +186,11 @@ export default function CreateAccount() {
                 value={formData.password}
                 onChange={handleChange}
                 className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="********"
+                placeholder="*****"
                 autoComplete="new-password"
               />
             </div>
             {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiLock className="text-gray-400" />
-              </div>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="********"
-                autoComplete="new-password"
-              />
-            </div>
-            {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
           </div>
 
           {/* Submit Button */}

@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { FiPhone, FiLock } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useApi } from '@/context/AppContext';
 
-export default function Login() {
+export default function AdminLogin() {
   const router = useRouter();
-  const { loginUser, user, authLoading } = useApi();
+  const { loginUser, user, isAdmin, loading: authLoading } = useApi();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -20,19 +20,17 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user && !authLoading) {
-      router.replace('/dashboard');
+    if (user && isAdmin && !authLoading) {
+      router.replace('/admin/dashboard');
+    } else if (user && !isAdmin && !authLoading) {
+      toast.error('Access denied. Admins only.');
     }
-  }, [user, authLoading, router]);
+  }, [user, isAdmin, authLoading, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Clear error message as user types
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const validateForm = () => {
@@ -44,29 +42,29 @@ export default function Login() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setIsSubmitting(true);
-  try {
-    const response = await loginUser(formData); // call loginUser
+    setIsSubmitting(true);
+    try {
+      const response = await loginUser(formData);
 
-    // Example: save token from response
-    if (response && response.token) {
-      localStorage.setItem('token', response.token);
-      toast.success('Logged in successfully!');
-      router.push('/dashboard');
-    } else {
-      toast.error('Login failed. Invalid response.');
+      if (response?.token) {
+        if (response.user?.roles?.includes('ROLE_ADMIN')) {
+          toast.success('Admin login successful!');
+          router.push('/admin/dashboard');
+        } else {
+          toast.error('Access denied. Not an admin.');
+        }
+      } else {
+        toast.error('Login failed. Invalid credentials.');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Something went wrong.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-  } catch (error) {
-    toast.error(error.message || 'Something went wrong. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   if (authLoading) {
     return (
@@ -80,16 +78,16 @@ export default function Login() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-indigo-100 to-blue-50 flex items-center justify-center p-4"
+      className="min-h-screen bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center p-4"
     >
       <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-indigo-700 mb-2">Welcome Back</h1>
-        <p className="text-gray-600 text-center mb-6">Login with your phone number</p>
+        <h1 className="text-3xl font-bold text-center text-indigo-700 mb-2">Admin Login</h1>
+        <p className="text-gray-600 text-center mb-6">Enter your admin credentials</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Username Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">Phone Number (with country code)</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Phone Number</label>
             <div className="relative">
               <FiPhone className="absolute left-3 top-3 text-gray-700" />
               <input
@@ -97,8 +95,8 @@ export default function Login() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                autoComplete="username"
                 placeholder="+91-9876543210"
+                autoComplete="username"
                 className={`pl-10 w-full px-4 py-2 text-gray-900 rounded-lg border ${errors.username ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
               />
             </div>
@@ -115,8 +113,8 @@ export default function Login() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                autoComplete="current-password"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 className={`pl-10 w-full px-4 text-gray-900 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
               />
             </div>
@@ -129,19 +127,9 @@ export default function Login() {
             disabled={isSubmitting}
             className={`w-full py-3 px-4 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-all duration-200 flex justify-center items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isSubmitting ? 'Logging in...' : 'Login'}
+            {isSubmitting ? 'Logging in...' : 'Login as Admin'}
           </button>
         </form>
-
-        {/* Register Link */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => router.push('/create-account')}
-            className="text-indigo-600 hover:text-indigo-800 font-medium transition duration-150"
-          >
-            Don't have an account? Register
-          </button>
-        </div>
       </div>
     </motion.div>
   );
