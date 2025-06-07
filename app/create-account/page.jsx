@@ -8,18 +8,18 @@ import { motion } from 'framer-motion';
 import { useApi } from '@/context/AppContext';
 
 const countryCodes = [
-  { code: '+1', name: 'US'},
-  { code: '+44', name: 'UK'},
-  { code: '+91', name: 'IN'},
-  { code: '+81', name: 'JP'},
-  { code: '+86', name: 'CH'},
-  { code: '+33', name: 'FR'},
-  { code: '+49', name: 'GR'},
+  { code: '+1', name: 'US' },
+  { code: '+44', name: 'UK' },
+  { code: '+91', name: 'IN' },
+  { code: '+81', name: 'JP' },
+  { code: '+86', name: 'CH' },
+  { code: '+33', name: 'FR' },
+  { code: '+49', name: 'GR' },
 ];
 
 export default function CreateAccount() {
   const router = useRouter();
-  const { createUser, loading: apiLoading } = useApi();
+  const { register, loading, error, clearError } = useApi();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,7 +35,7 @@ export default function CreateAccount() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
+    clearError();
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -43,17 +43,21 @@ export default function CreateAccount() {
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.name.trim()) newErrors.name = 'Name is required';
+    else if (formData.name.length < 3) newErrors.name = 'Name must be at least 3 characters';
 
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
-    else if (!/^\d{7,15}$/.test(formData.phoneNumber)) newErrors.phoneNumber = 'Invalid phone number';
+    else if (!/^[0-9]{7,15}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Invalid phone number (7-15 digits)';
+    }
 
     if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email address';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email address';
+    }
 
     if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 5) newErrors.password = 'Password must be at least 5 characters';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -61,7 +65,6 @@ export default function CreateAccount() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -73,135 +76,156 @@ export default function CreateAccount() {
         password: formData.password,
       };
 
-      const createdUser = await createUser(userData);
+      await register(userData);
 
-      localStorage.setItem('userId', createdUser.id);
-
-      toast.success('Account created successfully!');
-      router.push('/dashboard');
+      toast.success('Account created! Redirecting...', { autoClose: 2000 });
+      setTimeout(() => router.push('/login'), 2000);
     } catch (error) {
-      toast.error(error.message || 'Failed to create account');
+      toast.error(error.message || 'Registration failed');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const fullPhoneNumber = formData.countryCode + '-' + formData.phoneNumber;
+  const isLoading = isSubmitting || loading;
+  const fullPhoneNumber = formData.countryCode + formData.phoneNumber;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen text-gray-950 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 pt-20"
     >
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
         <h1 className="text-3xl font-bold text-center text-indigo-700 mb-2">Create Account</h1>
         <p className="text-gray-600 text-center mb-8">Join our financial platform</p>
-        
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label className="block text-sm font-medium mb-1">Full Name</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiUser className="text-gray-400" />
-              </div>
+              <FiUser className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
                 placeholder="John Doe"
+                disabled={isLoading}
               />
             </div>
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
           </div>
 
           {/* Phone Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <label className="block text-sm font-medium mb-1">Phone Number</label>
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <select
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {countryCodes.map((country) => (
-                    <option key={country.code} value={country.code}>
-                      {country.name} ({country.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="relative flex-[2]">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiPhone className="text-gray-400" />
-                </div>
+              <select
+                name="countryCode"
+                value={formData.countryCode}
+                onChange={handleChange}
+                className="w-1/3 px-2 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"
+                disabled={isLoading}
+              >
+                {countryCodes.map(c => (
+                  <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+                ))}
+              </select>
+              <div className="relative w-2/3">
+                <FiPhone className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
                 <input
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                  placeholder="9876543213"
+                  className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
+                  placeholder="9876543210"
+                  disabled={isLoading}
                 />
               </div>
             </div>
-            {errors.phoneNumber && <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>}
-            <p className="text-xs text-gray-500 mt-1">Your phone number: {fullPhoneNumber}</p>
+            {errors.phoneNumber && <p className="text-sm text-red-600 mt-1">{errors.phoneNumber}</p>}
+            <p className="text-xs text-gray-500 mt-1">Your phone: {fullPhoneNumber}</p>
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">Email</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiMail className="text-gray-400" />
-              </div>
+              <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="john@example.com"
+                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
+                placeholder="you@example.com"
+                disabled={isLoading}
               />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">Password</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiLock className="text-gray-400" />
-              </div>
+              <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
               <input
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="*****"
-                autoComplete="new-password"
+                className={`pl-10 w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-indigo-500`}
+                placeholder="At least 6 characters"
+                disabled={isLoading}
               />
             </div>
-            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+            {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
-            disabled={isSubmitting || apiLoading}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50"
           >
-            Create Account <FiArrowRight />
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>Create Account <FiArrowRight /></>
+            )}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Already have an account?{' '}
+            <button
+              onClick={() => router.push('/login')}
+              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              disabled={isLoading}
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
       </div>
     </motion.div>
   );

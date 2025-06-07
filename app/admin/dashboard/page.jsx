@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
+import { toast } from 'react-toastify';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { FiActivity, FiCreditCard, FiDollarSign, FiHome, FiLogOut, FiPlus, FiRefreshCw, FiSend, FiUser, FiUsers } from 'react-icons/fi';
 import { FaPiggyBank } from 'react-icons/fa';
@@ -11,27 +12,45 @@ import { FaPiggyBank } from 'react-icons/fa';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export default function AdminDashboard() {
-  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [bankBalance, setBankBalance] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // Form hooks
-  const { register: registerUser, handleSubmit: handleUserSubmit } = useForm();
-  const { register: registerBank, handleSubmit: handleBankSubmit } = useForm();
-  const { register: registerTransaction, handleSubmit: handleTransactionSubmit } = useForm();
+  const { register: registerUser, handleSubmit: handleUserSubmit, reset: resetUserForm } = useForm();
+  const { register: registerBank, handleSubmit: handleBankSubmit, reset: resetBankForm } = useForm();
+  const { register: registerTransaction, handleSubmit: handleTransactionSubmit, reset: resetTransactionForm } = useForm();
 
-  // Mock data for charts
-  const transactionData = [
-    { name: 'BANK_TO_WALLET', value: 400 },
-    { name: 'WALLET_TO_BANK', value: 300 },
-    { name: 'USER_TO_USER', value: 200 },
-    { name: 'ADMIN_TO_USER', value: 100 },
-  ];
+
+
+  // Handle adding money to bank account
+
+
+
+
+
+
+  // Animation variants
+  const tabVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 }
+  };
+
+  // Prepare chart data
+  const prepareChartData = () => {
+    const methods = ['BANK_TO_WALLET', 'WALLET_TO_BANK', 'USER_TO_USER', 'ADMIN_TO_USER'];
+    return methods.map(method => ({
+      name: method,
+      value: transactions.filter(t => t.transactionMethod === method).length
+    }));
+  };
+
+  const transactionData = prepareChartData();
 
   const userGrowthData = [
     { name: 'Jan', users: 100 },
@@ -42,140 +61,16 @@ export default function AdminDashboard() {
     { name: 'Jun', users: 500 },
   ];
 
-  // Mock API calls
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      // Mock API call
-      const mockUsers = [
-        { id: 1, phone: '+91-9876543210', balance: 1000, accountNumber: '7b7e2720-9fbb-4191-80b3-9eabb06d1798' },
-        { id: 2, phone: '+91-9876543211', balance: 2000, accountNumber: '7b7e2720-9fbb-4191-80b3-9eabb06d1799' },
-        { id: 3, phone: '+91-9876543212', balance: 3000, accountNumber: '7b7e2720-9fbb-4191-80b3-9eabb06d1800' },
-      ];
-      setUsers(mockUsers);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchBankBalance = async () => {
-    setLoading(true);
-    try {
-      // Mock API call
-      setBankBalance(50000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWalletBalance = async () => {
-    setLoading(true);
-    try {
-      // Mock API call
-      setWalletBalance(10000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTransactions = async () => {
-    setLoading(true);
-    try {
-      // Mock API call
-      const mockTransactions = [
-        { id: 1, sender: 'Admin', receiver: '+91-9876543210', amount: 100, method: 'BANK_TO_WALLET', date: new Date() },
-        { id: 2, sender: '+91-9876543210', receiver: '+91-9876543211', amount: 50, method: 'USER_TO_USER', date: new Date() },
-        { id: 3, sender: 'Admin', receiver: '+91-9876543212', amount: 200, method: 'BANK_TO_WALLET', date: new Date() },
-      ];
-      setTransactions(mockTransactions);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addBankMoney = async (data) => {
-    setLoading(true);
-    try {
-      // Mock API call
-      console.log('Adding money:', data);
-      alert(`Successfully added ${data.balance} to account ${data.accountNumber}`);
-      fetchBankBalance();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const initiateTransaction = async (data) => {
-    setLoading(true);
-    try {
-      // Mock API call
-      console.log('Initiating transaction:', data);
-      alert(`Successfully sent ${data.amount} to ${data.receiver}`);
-      fetchTransactions();
-      fetchBankBalance();
-      fetchWalletBalance();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUserByPhone = async (phone) => {
-    setLoading(true);
-    try {
-      // Mock API call
-      const user = users.find(u => u.phone === phone);
-      if (user) {
-        alert(`User found: ${user.phone} - Balance: ${user.balance}`);
-      } else {
-        alert('User not found');
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load data based on active tab
-  useEffect(() => {
-    switch (activeTab) {
-      case 'users':
-        fetchUsers();
-        break;
-      case 'bank':
-        fetchBankBalance();
-        break;
-      case 'wallet':
-        fetchWalletBalance();
-        break;
-      case 'transactions':
-        fetchTransactions();
-        break;
-      default:
-        fetchBankBalance();
-        fetchWalletBalance();
-        fetchTransactions();
-        break;
-    }
-  }, [activeTab]);
-
-  const tabVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 }
-  };
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p>You must be an admin to access this page</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 pt-20">
@@ -185,6 +80,7 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold flex items-center">
             <FiActivity className="mr-2" /> Admin Portal
           </h1>
+          <p className="text-sm text-indigo-200 mt-1">Welcome, {user?.name || 'Admin'}</p>
         </div>
         <nav className="mt-6">
           <div>
@@ -222,7 +118,7 @@ export default function AdminDashboard() {
         </nav>
         <div className="absolute bottom-0 w-full p-6">
           <button
-            onClick={() => router.push('/logout')}
+            onClick={logout}
             className="flex items-center w-full px-4 py-2 text-left rounded-md hover:bg-indigo-700"
           >
             <FiLogOut className="mr-3" /> Logout
@@ -248,13 +144,13 @@ export default function AdminDashboard() {
           )}
         </AnimatePresence>
 
-        {error && (
+        {apiError && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded"
           >
-            <p>{error}</p>
+            <p>{apiError}</p>
           </motion.div>
         )}
 
@@ -282,8 +178,8 @@ export default function AdminDashboard() {
                       <FiUsers size={24} />
                     </div>
                     <div>
-                      <h3 className="text-gray-500">Total Users</h3>
-                      <p className="text-2xl font-bold">{users.length}</p>
+                      <h3 className="text-gray-500">Total Transactions</h3>
+                      <p className="text-2xl font-bold">{transactions.length}</p>
                     </div>
                   </motion.div>
 
@@ -378,12 +274,12 @@ export default function AdminDashboard() {
                         {transactions.slice(0, 5).map((txn) => (
                           <tr key={txn.id}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{txn.id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{txn.sender}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{txn.receiver}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{txn.senderPhone || 'Admin'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{txn.receiverPhone}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${txn.amount}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{txn.method}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{txn.transactionMethod}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {txn.date.toLocaleString()}
+                              {new Date(txn.transactionDate).toLocaleString()}
                             </td>
                           </tr>
                         ))}
@@ -411,7 +307,7 @@ export default function AdminDashboard() {
                 <dialog id="findUserModal" className="modal">
                   <div className="modal-box">
                     <h3 className="font-bold text-lg">Find User by Phone Number</h3>
-                    <form onSubmit={handleUserSubmit((data) => getUserByPhone(data.phone))} className="mt-4">
+                    <form onSubmit={handleUserSubmit(handleFindUser)} className="mt-4">
                       <div className="form-control">
                         <label className="label">
                           <span className="label-text">Phone Number</span>
@@ -439,38 +335,38 @@ export default function AdminDashboard() {
                   </div>
                 </dialog>
 
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="p-6 border-b">
-                    <h3 className="text-lg font-semibold">All Users</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Number</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((user) => (
-                          <tr key={user.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.accountNumber}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.balance}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                              <button className="text-red-600 hover:text-red-900">Suspend</button>
-                            </td>
+                {users.length > 0 && (
+                  <div className="bg-white rounded-lg shadow overflow-hidden mt-6">
+                    <div className="p-6 border-b">
+                      <h3 className="text-lg font-semibold">User Details</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {users.map((user) => (
+                            <tr key={user.phone}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button className="text-indigo-600 hover:text-indigo-900 mr-3">View Details</button>
+                                <button className="text-red-600 hover:text-red-900">Suspend</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -486,7 +382,18 @@ export default function AdminDashboard() {
                       <div className="text-2xl font-bold text-green-600">${bankBalance.toLocaleString()}</div>
                     </div>
                     <button 
-                      onClick={() => fetchBankBalance()}
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          const data = await getBankBalance();
+                          setBankBalance(data.balance || 0);
+                          toast.success('Bank balance refreshed');
+                        } catch (error) {
+                          toast.error(apiError || 'Failed to refresh balance');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
                       className="btn btn-outline flex items-center"
                     >
                       <FiRefreshCw className="mr-2" /> Refresh Balance
@@ -495,7 +402,7 @@ export default function AdminDashboard() {
 
                   <div className="bg-white p-6 rounded-lg shadow">
                     <h3 className="text-xl font-semibold mb-6">Add Money to User Account</h3>
-                    <form onSubmit={handleBankSubmit(addBankMoney)}>
+                    <form onSubmit={handleBankSubmit(handleAddBankMoney)}>
                       <div className="form-control mb-4">
                         <label className="label">
                           <span className="label-text">Account Number</span>
@@ -515,7 +422,7 @@ export default function AdminDashboard() {
                           type="number" 
                           placeholder="Enter amount" 
                           className="input input-bordered w-full"
-                          {...registerBank('balance', { required: true, min: 0 })}
+                          {...registerBank('amount', { required: true, min: 0 })}
                         />
                       </div>
                       <button type="submit" className="btn btn-primary w-full flex items-center">
@@ -539,7 +446,18 @@ export default function AdminDashboard() {
                       <div className="text-2xl font-bold text-purple-600">${walletBalance.toLocaleString()}</div>
                     </div>
                     <button 
-                      onClick={() => fetchWalletBalance()}
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          const data = await getWalletBalance();
+                          setWalletBalance(data.balance || 0);
+                          toast.success('Wallet balance refreshed');
+                        } catch (error) {
+                          toast.error(apiError || 'Failed to refresh balance');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
                       className="btn btn-outline flex items-center"
                     >
                       <FiRefreshCw className="mr-2" /> Refresh Balance
@@ -552,7 +470,13 @@ export default function AdminDashboard() {
                       <button className="btn btn-primary w-full flex items-center">
                         <FiPlus className="mr-2" /> Create New Wallet
                       </button>
-                      <button className="btn btn-secondary w-full flex items-center">
+                      <button 
+                        onClick={() => {
+                          setActiveTab('transactions');
+                          document.getElementById('transactionMethod').value = 'ADMIN_TO_USER';
+                        }}
+                        className="btn btn-secondary w-full flex items-center"
+                      >
                         <FiDollarSign className="mr-2" /> Fund User Wallet
                       </button>
                       <button className="btn btn-error w-full flex items-center">
@@ -572,7 +496,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   <div className="bg-white p-6 rounded-lg shadow">
                     <h3 className="text-xl font-semibold mb-6">Initiate Transaction</h3>
-                    <form onSubmit={handleTransactionSubmit(initiateTransaction)}>
+                    <form onSubmit={handleTransactionSubmit(handleInitiateTransaction)}>
                       <div className="form-control mb-4">
                         <label className="label">
                           <span className="label-text">Receiver Phone</span>
@@ -600,6 +524,7 @@ export default function AdminDashboard() {
                           <span className="label-text">Transaction Method</span>
                         </label>
                         <select 
+                          id="transactionMethod"
                           className="select select-bordered w-full"
                           {...registerTransaction('transactionMethod', { required: true })}
                         >
@@ -608,6 +533,17 @@ export default function AdminDashboard() {
                           <option value="USER_TO_USER">User to User</option>
                           <option value="ADMIN_TO_USER">Admin to User</option>
                         </select>
+                      </div>
+                      <div className="form-control mb-4">
+                        <label className="label">
+                          <span className="label-text">Remarks (Optional)</span>
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder="Enter remarks" 
+                          className="input input-bordered w-full"
+                          {...registerTransaction('remarks')}
+                        />
                       </div>
                       <button type="submit" className="btn btn-primary w-full flex items-center">
                         <FiSend className="mr-2" /> Initiate Transaction
@@ -626,16 +562,18 @@ export default function AdminDashboard() {
                             <th>To</th>
                             <th>Amount</th>
                             <th>Method</th>
+                            <th>Date</th>
                           </tr>
                         </thead>
                         <tbody>
                           {transactions.map((txn) => (
                             <tr key={txn.id}>
                               <td>{txn.id}</td>
-                              <td>{txn.sender}</td>
-                              <td>{txn.receiver}</td>
+                              <td>{txn.senderPhone || 'Admin'}</td>
+                              <td>{txn.receiverPhone}</td>
                               <td>${txn.amount}</td>
-                              <td>{txn.method}</td>
+                              <td>{txn.transactionMethod}</td>
+                              <td>{new Date(txn.transactionDate).toLocaleDateString()}</td>
                             </tr>
                           ))}
                         </tbody>
